@@ -1,0 +1,44 @@
+@InvoiceParser.Api_HostAddress = http://localhost:5044
+
+### Health-ish (Swagger should load in Development)
+GET {{InvoiceParser.Api_HostAddress}}/swagger/index.html
+
+### Parse by URL (sync)
+POST {{InvoiceParser.Api_HostAddress}}/api/invoice/parse-url
+Content-Type: application/json
+
+{
+  "vendor": null,
+  "vendorName": null,
+  "sourceUrl": "https://example.com"
+}
+
+### Parse by URL (async)
+POST {{InvoiceParser.Api_HostAddress}}/api/invoice/parse-async
+Content-Type: application/json
+
+{
+  "vendor": null,
+  "vendorName": null,
+  "sourceUrl": "https://example.com"
+}
+
+### Poll job
+GET {{InvoiceParser.Api_HostAddress}}/api/job/REPLACE_WITH_REQUEST_ID
+Accept: application/json
+
+### n8n callback
+POST {{InvoiceParser.Api_HostAddress}}/api/webhook/n8n-callback
+Content-Type: application/json
+
+{
+  "requestId": "REPLACE_WITH_REQUEST_ID",
+  "vendor": "UNKNOWN",
+  "sourceUrl": "https://example.com",
+  "categories": [],
+  "items": [
+    { "name": "Test", "quantity": 1, "unit": "pcs", "price": 1.23, "vatPercent": 24, "vatAmount": 0.3 }
+  ]
+}
+
+###
