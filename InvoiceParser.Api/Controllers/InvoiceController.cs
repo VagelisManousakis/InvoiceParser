@@ -156,7 +156,7 @@ public sealed class InvoiceController : ControllerBase
                         Items = items
                     },
                     requestId,
-                    "https://localsexpert20250128215530.azurewebsites.net/webhook/n8n-callback",
+                    "https://localsexpert20250128215530.azurewebsites.net/api/webhook/n8n-callback",
                     HttpContext.RequestAborted);
             }
 
@@ -221,7 +221,7 @@ public sealed class InvoiceController : ControllerBase
                         Items = items
                     },
                     requestId,
-                    "https://localsexpert20250128215530.azurewebsites.net/webhook/n8n-callback",
+                    "https://localsexpert20250128215530.azurewebsites.net/api/webhook/n8n-callback",
                     CancellationToken.None
                 );
             }
@@ -274,7 +274,7 @@ public sealed class InvoiceController : ControllerBase
                         SourceType = body.SourceType ?? "receipt_photo"
                     },
                     requestId,
-                    "https://localsexpert20250128215530.azurewebsites.net/webhook/n8n-callback",
+                    "https://localsexpert20250128215530.azurewebsites.net/api/webhook/n8n-callback",
                     CancellationToken.None
                 );
             }
