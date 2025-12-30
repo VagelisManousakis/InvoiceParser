@@ -5,6 +5,7 @@ namespace InvoiceParser.Api.Services;
 public sealed class N8nClient : IN8nClient
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private string receiptUrl = "https://n8n.srv1131206.hstgr.cloud/webhook/new-receipt";
 
     public N8nClient(IHttpClientFactory httpClientFactory)
     {
@@ -13,23 +14,21 @@ public sealed class N8nClient : IN8nClient
 
     public async Task<N8nReceiptResponse> CallReceiptFlowAsync(N8nReceiptRequest payload, string? requestId, CancellationToken ct = default)
     {
-        var url = Environment.GetEnvironmentVariable("N8N_RECEIPT_WEBHOOK_URL");
-        if (string.IsNullOrWhiteSpace(url))
-            throw new InvalidOperationException("N8N_RECEIPT_WEBHOOK_URL is not set");
+        
 
         var timeoutMsStr = Environment.GetEnvironmentVariable("N8N_TIMEOUT_MS") ?? "12000";
         _ = int.TryParse(timeoutMsStr, out var timeoutMs);
         if (timeoutMs <= 0) timeoutMs = 12000;
 
-        var secret = Environment.GetEnvironmentVariable("N8N_WEBHOOK_SECRET");
+        //var secret = Environment.GetEnvironmentVariable("N8N_WEBHOOK_SECRET");
 
         var client = _httpClientFactory.CreateClient();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromMilliseconds(timeoutMs));
 
-        using var req = new HttpRequestMessage(HttpMethod.Post, url);
+        using var req = new HttpRequestMessage(HttpMethod.Post, receiptUrl);
         req.Content = JsonContent.Create(payload);
-        if (!string.IsNullOrWhiteSpace(secret)) req.Headers.TryAddWithoutValidation("X-Webhook-Secret", secret);
+       // if (!string.IsNullOrWhiteSpace(secret)) req.Headers.TryAddWithoutValidation("X-Webhook-Secret", secret);
         if (!string.IsNullOrWhiteSpace(requestId)) req.Headers.TryAddWithoutValidation("X-Request-Id", requestId);
 
         using var resp = await client.SendAsync(req, cts.Token);
@@ -41,8 +40,8 @@ public sealed class N8nClient : IN8nClient
 
     public async Task FireReceiptFlowAsync(N8nReceiptRequest payload, string requestId, string? callbackUrl, CancellationToken ct = default)
     {
-        var url = "https://n8n.srv1131206.hstgr.cloud/webhook-test/new-receipt";//Environment.GetEnvironmentVariable("N8N_RECEIPT_WEBHOOK_URL");
-        if (string.IsNullOrWhiteSpace(url))
+        //var url = "https://n8n.srv1131206.hstgr.cloud/webhook-test/new-receipt";//Environment.GetEnvironmentVariable("N8N_RECEIPT_WEBHOOK_URL");
+        if (string.IsNullOrWhiteSpace(receiptUrl))
             throw new InvalidOperationException("N8N_RECEIPT_WEBHOOK_URL is not set");
 
         //var secret = Environment.GetEnvironmentVariable("N8N_WEBHOOK_SECRET");
@@ -61,7 +60,7 @@ public sealed class N8nClient : IN8nClient
             ["callbackUrl"] = callbackUrl ?? Environment.GetEnvironmentVariable("N8N_CALLBACK_URL")
         };
 
-        using var req = new HttpRequestMessage(HttpMethod.Post, url);
+        using var req = new HttpRequestMessage(HttpMethod.Post, receiptUrl);
         req.Content = JsonContent.Create(asyncPayload);
         req.Headers.TryAddWithoutValidation("X-Request-Id", requestId);
         //if (!string.IsNullOrWhiteSpace(secret)) req.Headers.TryAddWithoutValidation("X-Webhook-Secret", secret);
@@ -72,11 +71,9 @@ public sealed class N8nClient : IN8nClient
 
     public async Task FireOcrFlowAsync(N8nOcrRequest payload, string requestId, string? callbackUrl, CancellationToken ct = default)
     {
-        var url = Environment.GetEnvironmentVariable("N8N_RECEIPT_WEBHOOK_URL");
-        if (string.IsNullOrWhiteSpace(url))
-            throw new InvalidOperationException("N8N_RECEIPT_WEBHOOK_URL is not set");
+        //var url = "https://n8n.srv1131206.hstgr.cloud/webhook-test/new-receipt";
 
-        var secret = Environment.GetEnvironmentVariable("N8N_WEBHOOK_SECRET");
+        //var secret = Environment.GetEnvironmentVariable("N8N_WEBHOOK_SECRET");
         var client = _httpClientFactory.CreateClient();
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -91,10 +88,10 @@ public sealed class N8nClient : IN8nClient
             ["callbackUrl"] = callbackUrl ?? Environment.GetEnvironmentVariable("N8N_CALLBACK_URL")
         };
 
-        using var req = new HttpRequestMessage(HttpMethod.Post, url);
+        using var req = new HttpRequestMessage(HttpMethod.Post, receiptUrl);
         req.Content = JsonContent.Create(asyncPayload);
         req.Headers.TryAddWithoutValidation("X-Request-Id", requestId);
-        if (!string.IsNullOrWhiteSpace(secret)) req.Headers.TryAddWithoutValidation("X-Webhook-Secret", secret);
+        //if (!string.IsNullOrWhiteSpace(secret)) req.Headers.TryAddWithoutValidation("X-Webhook-Secret", secret);
 
         using var resp = await client.SendAsync(req, cts.Token);
         resp.EnsureSuccessStatusCode();

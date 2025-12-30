@@ -13,6 +13,9 @@ public sealed class InvoiceController : ControllerBase
     private readonly IN8nClient _n8n;
     private readonly IJobStore _jobs;
 
+    private string callback = "https://localsexpert20250128215530.azurewebsites.net/api/webhook/n8n-callback";
+    //private string callback = "https://cinderella-tubulous-magdalene.ngrok-free.dev/api/webhook/n8n-callback";
+    private string receiptUrl = "https://n8n.srv1131206.hstgr.cloud/webhook/new-receipt";
     public InvoiceController(IInvoiceParserService parser, IN8nClient n8n, IJobStore jobs)
     {
         _parser = parser;
@@ -20,95 +23,95 @@ public sealed class InvoiceController : ControllerBase
         _jobs = jobs;
     }
 
-    [HttpPost("invoice/parse-url")]
-    public async Task<IActionResult> ParseUrl([FromBody] ParseUrlRequest body, CancellationToken ct)
-    {
-        if (!UrlHelpers.IsValidHttpUrl(body.SourceUrl))
-            return BadRequest(new { error = "Invalid sourceUrl. Must be http(s) URL" });
+    //[HttpPost("invoice/parse-url")]
+    //public async Task<IActionResult> ParseUrl([FromBody] ParseUrlRequest body, CancellationToken ct)
+    //{
+    //    if (!UrlHelpers.IsValidHttpUrl(body.SourceUrl))
+    //        return BadRequest(new { error = "Invalid sourceUrl. Must be http(s) URL" });
 
-        //var expectedToken = Environment.GetEnvironmentVariable("INVOICE_PARSE_API_KEY");
-        //if (!AuthHelpers.IsAuthorized(Request, expectedToken))
-        //    return AuthHelpers.UnauthorizedResult();
+    //    //var expectedToken = Environment.GetEnvironmentVariable("INVOICE_PARSE_API_KEY");
+    //    //if (!AuthHelpers.IsAuthorized(Request, expectedToken))
+    //    //    return AuthHelpers.UnauthorizedResult();
 
-        var (vendor, items, debug) = await _parser.ParseByUrlAsync(body.SourceUrl!, body.Vendor, body.VendorName, ct);
+    //    var (vendor, items, debug) = await _parser.ParseByUrlAsync(body.SourceUrl!, body.Vendor, body.VendorName, ct);
 
-        //var n8nEnabled = (Environment.GetEnvironmentVariable("N8N_ENABLED") ?? string.Empty).Trim().ToLowerInvariant();
-        //var shouldUseN8n = !(string.IsNullOrEmpty(n8nEnabled) || n8nEnabled is "0" or "false" or "off");
+    //    //var n8nEnabled = (Environment.GetEnvironmentVariable("N8N_ENABLED") ?? string.Empty).Trim().ToLowerInvariant();
+    //    //var shouldUseN8n = !(string.IsNullOrEmpty(n8nEnabled) || n8nEnabled is "0" or "false" or "off");
 
-        if (true)
-        {
-            var webhookUrl = Environment.GetEnvironmentVariable("N8N_RECEIPT_WEBHOOK_URL");
-            if (!string.IsNullOrWhiteSpace(webhookUrl))
-            {
-                try
-                {
-                    var resp = await _n8n.CallReceiptFlowAsync(new N8nReceiptRequest
-                    {
-                        Vendor = vendor.ToString(),
-                        VendorName = body.VendorName,
-                        SourceUrl = body.SourceUrl,
-                        Items = items
-                    }, RequestContextMiddleware.GetRequestId(HttpContext), ct);
+    //    if (true)
+    //    {
+    //        var webhookUrl = Environment.GetEnvironmentVariable("N8N_RECEIPT_WEBHOOK_URL");
+    //        if (!string.IsNullOrWhiteSpace(webhookUrl))
+    //        {
+    //            try
+    //            {
+    //                var resp = await _n8n.CallReceiptFlowAsync(new N8nReceiptRequest
+    //                {
+    //                    Vendor = vendor.ToString(),
+    //                    VendorName = body.VendorName,
+    //                    SourceUrl = body.SourceUrl,
+    //                    Items = items
+    //                }, RequestContextMiddleware.GetRequestId(HttpContext), ct);
 
-                    if (resp.Items != null && resp.Items.Count > 0)
-                    {
-                        return Ok(new
-                        {
-                            vendor = vendor.ToString(),
-                            sourceUrl = body.SourceUrl,
-                            items = resp.Items
-                        });
-                    }
+    //                if (resp.Items != null && resp.Items.Count > 0)
+    //                {
+    //                    return Ok(new
+    //                    {
+    //                        vendor = vendor.ToString(),
+    //                        sourceUrl = body.SourceUrl,
+    //                        items = resp.Items
+    //                    });
+    //                }
 
-                    object? debugObj;
-                    if (debug == null)
-                    {
-                        debugObj = new { ai = new { applied = false, reason = "N8N_RESPONSE_NO_ITEMS" } };
-                    }
-                    else
-                    {
-                        debugObj = new { parse = debug, ai = new { applied = false, reason = "N8N_RESPONSE_NO_ITEMS" } };
-                    }
+    //                object? debugObj;
+    //                if (debug == null)
+    //                {
+    //                    debugObj = new { ai = new { applied = false, reason = "N8N_RESPONSE_NO_ITEMS" } };
+    //                }
+    //                else
+    //                {
+    //                    debugObj = new { parse = debug, ai = new { applied = false, reason = "N8N_RESPONSE_NO_ITEMS" } };
+    //                }
 
-                    return Ok(new
-                    {
-                        vendor = vendor.ToString(),
-                        sourceUrl = body.SourceUrl,
-                        items,
-                        debug = debugObj
-                    });
-                }
-                catch (Exception ex)
-                {
-                    object? debugObj;
-                    if (debug == null)
-                    {
-                        debugObj = new { ai = new { applied = false, reason = "N8N_CALL_FAILED", message = ex.Message } };
-                    }
-                    else
-                    {
-                        debugObj = new { parse = debug, ai = new { applied = false, reason = "N8N_CALL_FAILED", message = ex.Message } };
-                    }
+    //                return Ok(new
+    //                {
+    //                    vendor = vendor.ToString(),
+    //                    sourceUrl = body.SourceUrl,
+    //                    items,
+    //                    debug = debugObj
+    //                });
+    //            }
+    //            catch (Exception ex)
+    //            {
+    //                object? debugObj;
+    //                if (debug == null)
+    //                {
+    //                    debugObj = new { ai = new { applied = false, reason = "N8N_CALL_FAILED", message = ex.Message } };
+    //                }
+    //                else
+    //                {
+    //                    debugObj = new { parse = debug, ai = new { applied = false, reason = "N8N_CALL_FAILED", message = ex.Message } };
+    //                }
 
-                    return Ok(new
-                    {
-                        vendor = vendor.ToString(),
-                        sourceUrl = body.SourceUrl,
-                        items,
-                        debug = debugObj
-                    });
-                }
-            }
-        }
+    //                return Ok(new
+    //                {
+    //                    vendor = vendor.ToString(),
+    //                    sourceUrl = body.SourceUrl,
+    //                    items,
+    //                    debug = debugObj
+    //                });
+    //            }
+    //        }
+    //    }
 
-        return Ok(new
-        {
-            vendor = vendor.ToString(),
-            sourceUrl = body.SourceUrl,
-            items,
-            debug = items.Count > 0 ? null : debug
-        });
-    }
+    //    return Ok(new
+    //    {
+    //        vendor = vendor.ToString(),
+    //        sourceUrl = body.SourceUrl,
+    //        items,
+    //        debug = items.Count > 0 ? null : debug
+    //    });
+    //}
 
 
     [HttpPost("invoice/parse-async")]
@@ -156,7 +159,7 @@ public sealed class InvoiceController : ControllerBase
                         Items = items
                     },
                     requestId,
-                    "https://localsexpert20250128215530.azurewebsites.net/api/webhook/n8n-callback",
+                    callback,
                     HttpContext.RequestAborted);
             }
 
@@ -221,7 +224,7 @@ public sealed class InvoiceController : ControllerBase
                         Items = items
                     },
                     requestId,
-                    "https://localsexpert20250128215530.azurewebsites.net/api/webhook/n8n-callback",
+                    callback,
                     CancellationToken.None
                 );
             }
@@ -248,9 +251,6 @@ public sealed class InvoiceController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.OcrText))
             return BadRequest(new { error = "Missing or empty ocrText" });
 
-        var expectedToken = Environment.GetEnvironmentVariable("INVOICE_PARSE_API_KEY");
-        if (!AuthHelpers.IsAuthorized(Request, expectedToken))
-            return AuthHelpers.UnauthorizedResult();
 
         _jobs.CreateJob(requestId, new Dictionary<string, object?>
         {
@@ -274,7 +274,7 @@ public sealed class InvoiceController : ControllerBase
                         SourceType = body.SourceType ?? "receipt_photo"
                     },
                     requestId,
-                    "https://localsexpert20250128215530.azurewebsites.net/api/webhook/n8n-callback",
+                    callback,
                     CancellationToken.None
                 );
             }

@@ -18,38 +18,9 @@ public sealed class WebhookController : ControllerBase
         _jobs = jobs;
     }
 
-    //[HttpPost("webhook/n8n-callback")]
-    //public IActionResult HandleN8nCallback([FromBody] N8nCallbackRequest body)
-    //{
-    //    var requestId = body.RequestId ?? (Request.Headers.TryGetValue("X-Request-Id", out var h) ? h.ToString() : null);
-    //    if (string.IsNullOrWhiteSpace(requestId))
-    //        return BadRequest(new { error = "Missing requestId" });
-
-
-    //    if (!string.IsNullOrWhiteSpace(body.Error))
-    //    {
-    //        _jobs.FailJob(requestId, body.Error);
-    //        return Ok(new { success = true, requestId, status = "failed" });
-    //    }
-
-    //    var jobData = new
-    //    {
-    //        categories = body.Categories ?? new List<string>(),
-    //        items = body.Items ?? new List<InvoiceItem>(),
-    //        vendor = body.Vendor,
-    //        sourceUrl = body.SourceUrl
-    //    };
-
-    //    _jobs.CompleteJob(requestId, jobData);
-    //    return Ok(new { success = true, requestId, status = "completed" });
-    //}
-
-   
-
 [HttpPost("webhook/n8n-callback")]
 public IActionResult HandleN8nCallback([FromBody] JsonElement body)
 {
-    // RequestId: from body (if exists) OR header X-Request-Id
     string? requestId =
         TryGetString(body, "requestId")
         ?? (Request.Headers.TryGetValue("X-Request-Id", out var h) ? h.ToString() : null);
@@ -57,26 +28,75 @@ public IActionResult HandleN8nCallback([FromBody] JsonElement body)
     if (string.IsNullOrWhiteSpace(requestId))
         return BadRequest(new { error = "Missing requestId" });
 
-    // If n8n sends error either at root object, or inside array elements
     var normalized = NormalizePayload(body);
 
     if (!string.IsNullOrWhiteSpace(normalized.Error))
     {
         _jobs.FailJob(requestId, normalized.Error);
-        return Ok(new { success = true, requestId, status = "failed" });
+        return Ok(new { requestId, status = "failed" });
     }
 
-    var jobData = new
+    var categories = normalized.Categories ?? new List<N8nCategory>();
+    var items = normalized.Items ?? new List<InvoiceItem>();
+
+    // Build a lookup of valid category ids
+    var categoryIds = new HashSet<string>(
+        categories.Where(c => !string.IsNullOrWhiteSpace(c.Id)).Select(c => c.Id!),
+        StringComparer.OrdinalIgnoreCase
+    );
+
+    // Normalize per-item category/subcategory
+    foreach (var i in items)
     {
-        categories = normalized.Categories ?? new List<N8nCategory>(),
-        items = normalized.Items ?? new List<InvoiceItem>(),
-        vendor = normalized.Vendor,
-        sourceUrl = normalized.SourceUrl
+        // categoryId -> "other" if missing OR not in categories list
+        if (string.IsNullOrWhiteSpace(i.CategoryId) || !categoryIds.Contains(i.CategoryId))
+            i.CategoryId = "other";
+
+        // subcategoryName -> "other" if missing
+        if (string.IsNullOrWhiteSpace(i.SubcategoryName))
+            i.SubcategoryName = "other";
+    }
+
+    // Ensure "other" category exists if used by any item
+    if (items.Any(x => string.Equals(x.CategoryId, "other", StringComparison.OrdinalIgnoreCase))
+        && !categoryIds.Contains("other"))
+    {
+        categories.Add(new N8nCategory
+        {
+            Id = "other",
+            Name = "Other",
+            Icon = null,
+            Color = null
+        });
+    }
+
+    var data = new N8nCallbackResponseData
+    {
+        Categories = categories,
+        Items = items,
+        Vendor = normalized.Vendor,
+        SourceUrl = normalized.SourceUrl
     };
 
-    _jobs.CompleteJob(requestId, jobData);
-    return Ok(new { success = true, requestId, status = "completed" });
+    // timestamps (epoch ms)
+    var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+    var response = new N8nCallbackResponse
+    {
+        RequestId = requestId,
+        Status = "completed",
+        Data = data,
+        CreatedAt = nowMs,
+        UpdatedAt = nowMs
+    };
+
+    // Store exactly what you return (optional but recommended)
+    _jobs.CompleteJob(requestId, data);
+
+    return Ok(response);
 }
+
+
 
 private static N8nCallbackEnvelope NormalizePayload(JsonElement body)
 {
