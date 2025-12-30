@@ -26,16 +26,16 @@ public sealed class InvoiceController : ControllerBase
         if (!UrlHelpers.IsValidHttpUrl(body.SourceUrl))
             return BadRequest(new { error = "Invalid sourceUrl. Must be http(s) URL" });
 
-        var expectedToken = Environment.GetEnvironmentVariable("INVOICE_PARSE_API_KEY");
-        if (!AuthHelpers.IsAuthorized(Request, expectedToken))
-            return AuthHelpers.UnauthorizedResult();
+        //var expectedToken = Environment.GetEnvironmentVariable("INVOICE_PARSE_API_KEY");
+        //if (!AuthHelpers.IsAuthorized(Request, expectedToken))
+        //    return AuthHelpers.UnauthorizedResult();
 
         var (vendor, items, debug) = await _parser.ParseByUrlAsync(body.SourceUrl!, body.Vendor, body.VendorName, ct);
 
-        var n8nEnabled = (Environment.GetEnvironmentVariable("N8N_ENABLED") ?? string.Empty).Trim().ToLowerInvariant();
-        var shouldUseN8n = !(string.IsNullOrEmpty(n8nEnabled) || n8nEnabled is "0" or "false" or "off");
+        //var n8nEnabled = (Environment.GetEnvironmentVariable("N8N_ENABLED") ?? string.Empty).Trim().ToLowerInvariant();
+        //var shouldUseN8n = !(string.IsNullOrEmpty(n8nEnabled) || n8nEnabled is "0" or "false" or "off");
 
-        if (shouldUseN8n)
+        if (true)
         {
             var webhookUrl = Environment.GetEnvironmentVariable("N8N_RECEIPT_WEBHOOK_URL");
             if (!string.IsNullOrWhiteSpace(webhookUrl))
@@ -110,61 +110,6 @@ public sealed class InvoiceController : ControllerBase
         });
     }
 
-    //[HttpPost("invoice/parse-async")]
-    //public IActionResult ParseAsync([FromBody] ParseUrlRequest body)
-    //{
-    //    var requestId = RequestContextMiddleware.GetRequestId(HttpContext) ?? Guid.NewGuid().ToString("N");
-
-    //    if (!UrlHelpers.IsValidHttpUrl(body.SourceUrl))
-    //        return BadRequest(new { error = "Invalid sourceUrl. Must be http(s) URL" });
-
-    //    var expectedToken = Environment.GetEnvironmentVariable("INVOICE_PARSE_API_KEY");
-    //    if (!AuthHelpers.IsAuthorized(Request, expectedToken))
-    //        return AuthHelpers.UnauthorizedResult();
-
-    //    var vendor = _parser.DetectVendor(body.Vendor, body.SourceUrl);
-
-    //    _jobs.CreateJob(requestId, new Dictionary<string, object?>
-    //    {
-    //        ["vendor"] = vendor.ToString(),
-    //        ["vendorName"] = body.VendorName,
-    //        ["sourceUrl"] = body.SourceUrl
-    //    });
-
-    //    _ = Task.Run(async () =>
-    //    {
-    //        try
-    //        {
-    //            var (v, items, _) = await _parser.ParseByUrlAsync(body.SourceUrl!, body.Vendor, body.VendorName, CancellationToken.None);
-
-    //            var n8nEnabled = (Environment.GetEnvironmentVariable("N8N_ENABLED") ?? string.Empty).Trim().ToLowerInvariant();
-    //            var shouldUseN8n = !(string.IsNullOrEmpty(n8nEnabled) || n8nEnabled is "0" or "false" or "off");
-    //            var webhookUrl = Environment.GetEnvironmentVariable("N8N_RECEIPT_WEBHOOK_URL");
-
-    //            if (shouldUseN8n && !string.IsNullOrWhiteSpace(webhookUrl))
-    //            {
-    //                await _n8n.FireReceiptFlowAsync(new N8nReceiptRequest
-    //                {
-    //                    Vendor = v.ToString(),
-    //                    VendorName = body.VendorName,
-    //                    SourceUrl = body.SourceUrl,
-    //                    Items = items
-    //                }, requestId, Environment.GetEnvironmentVariable("N8N_CALLBACK_URL"), CancellationToken.None);
-    //            }
-    //        }
-    //        catch
-    //        {
-    //            // Keep job as processing; webhook may arrive later or polling may time out.
-    //        }
-    //    });
-
-    //    return Ok(new
-    //    {
-    //        requestId,
-    //        status = "processing",
-    //        message = "Processing started. Poll GET /api/job/:requestId for results."
-    //    });
-    //}
 
     [HttpPost("invoice/parse-async")]
     public async Task<IActionResult> ParseAsync([FromBody] ParseUrlRequest body)
@@ -211,7 +156,7 @@ public sealed class InvoiceController : ControllerBase
                         Items = items
                     },
                     requestId,
-                    Environment.GetEnvironmentVariable("N8N_CALLBACK_URL"),
+                    "https://localsexpert20250128215530.azurewebsites.net/webhook/n8n-callback",
                     HttpContext.RequestAborted);
             }
 
@@ -276,7 +221,7 @@ public sealed class InvoiceController : ControllerBase
                         Items = items
                     },
                     requestId,
-                    Environment.GetEnvironmentVariable("N8N_CALLBACK_URL"),
+                    "https://localsexpert20250128215530.azurewebsites.net/webhook/n8n-callback",
                     CancellationToken.None
                 );
             }
@@ -329,7 +274,7 @@ public sealed class InvoiceController : ControllerBase
                         SourceType = body.SourceType ?? "receipt_photo"
                     },
                     requestId,
-                    Environment.GetEnvironmentVariable("N8N_CALLBACK_URL"),
+                    "https://localsexpert20250128215530.azurewebsites.net/webhook/n8n-callback",
                     CancellationToken.None
                 );
             }
@@ -345,108 +290,4 @@ public sealed class InvoiceController : ControllerBase
             message = "Processing started. Poll GET /api/job/:requestId for results."
         });
     }
-
-
-    //[HttpPost("invoice/parse-html-async")]
-    //public IActionResult ParseHtmlAsync([FromBody] ParseHtmlAsyncRequest body)
-    //{
-    //    var requestId = RequestContextMiddleware.GetRequestId(HttpContext) ?? Guid.NewGuid().ToString("N");
-
-    //    if (string.IsNullOrWhiteSpace(body.Html) || body.Html.Length < 50)
-    //        return BadRequest(new { error = "Missing or invalid html. Must be a string with HTML content." });
-
-    //    var expectedToken = Environment.GetEnvironmentVariable("INVOICE_PARSE_API_KEY");
-    //    if (!AuthHelpers.IsAuthorized(Request, expectedToken))
-    //        return AuthHelpers.UnauthorizedResult();
-
-    //    var vendor = _parser.DetectVendor(body.Vendor, body.SourceUrl);
-
-    //    _jobs.CreateJob(requestId, new Dictionary<string, object?>
-    //    {
-    //        ["vendor"] = vendor.ToString(),
-    //        ["vendorName"] = body.VendorName,
-    //        ["sourceUrl"] = body.SourceUrl
-    //    });
-
-    //    _ = Task.Run(async () =>
-    //    {
-    //        try
-    //        {
-    //            var (v, items, _) = _parser.ParseByHtml(body.Html!, body.Vendor, body.SourceUrl);
-
-    //            var n8nEnabled = (Environment.GetEnvironmentVariable("N8N_ENABLED") ?? string.Empty).Trim().ToLowerInvariant();
-    //            var shouldUseN8n = !(string.IsNullOrEmpty(n8nEnabled) || n8nEnabled is "0" or "false" or "off");
-    //            var webhookUrl = Environment.GetEnvironmentVariable("N8N_RECEIPT_WEBHOOK_URL");
-
-    //            if (shouldUseN8n && !string.IsNullOrWhiteSpace(webhookUrl))
-    //            {
-    //                await _n8n.FireReceiptFlowAsync(new N8nReceiptRequest
-    //                {
-    //                    Vendor = v.ToString(),
-    //                    VendorName = body.VendorName,
-    //                    SourceUrl = body.SourceUrl,
-    //                    Items = items
-    //                }, requestId, Environment.GetEnvironmentVariable("N8N_CALLBACK_URL"), CancellationToken.None);
-    //            }
-    //        }
-    //        catch
-    //        {
-    //        }
-    //    });
-
-    //    return Ok(new
-    //    {
-    //        requestId,
-    //        status = "processing",
-    //        message = "Processing started. Poll GET /api/job/:requestId for results."
-    //    });
-    //}
-
-    //[HttpPost("invoice/parse-ocr-async")]
-    //public IActionResult ParseOcrAsync([FromBody] ParseOcrAsyncRequest body)
-    //{
-    //    var requestId = RequestContextMiddleware.GetRequestId(HttpContext) ?? Guid.NewGuid().ToString("N");
-
-    //    if (string.IsNullOrWhiteSpace(body.OcrText))
-    //        return BadRequest(new { error = "Missing or empty ocrText" });
-
-    //    var expectedToken = Environment.GetEnvironmentVariable("INVOICE_PARSE_API_KEY");
-    //    if (!AuthHelpers.IsAuthorized(Request, expectedToken))
-    //        return AuthHelpers.UnauthorizedResult();
-
-    //    _jobs.CreateJob(requestId, new Dictionary<string, object?>
-    //    {
-    //        ["sourceType"] = body.SourceType ?? "receipt_photo",
-    //        ["ocrTextLength"] = body.OcrText.Length
-    //    });
-
-    //    _ = Task.Run(async () =>
-    //    {
-    //        try
-    //        {
-    //            var n8nEnabled = (Environment.GetEnvironmentVariable("N8N_ENABLED") ?? string.Empty).Trim().ToLowerInvariant();
-    //            var shouldUseN8n = !(string.IsNullOrEmpty(n8nEnabled) || n8nEnabled is "0" or "false" or "off");
-    //            var webhookUrl = Environment.GetEnvironmentVariable("N8N_RECEIPT_WEBHOOK_URL");
-
-    //            if (shouldUseN8n && !string.IsNullOrWhiteSpace(webhookUrl))
-    //            {
-    //                await _n8n.FireOcrFlowAsync(new N8nOcrRequest
-    //                {
-    //                    OcrText = body.OcrText!,
-    //                    SourceType = body.SourceType ?? "receipt_photo"
-    //                }, requestId, Environment.GetEnvironmentVariable("N8N_CALLBACK_URL"), CancellationToken.None);
-    //            }
-    //        }
-    //        catch
-    //        {
-    //        }
-    //    });
-
-    //    return Ok(new
-    //    {
-    //        requestId,
-    //        status = "processing",
-    //        message = "Processing started. Poll GET /api/job/:requestId for results."
-    //    });
-    //}
 }

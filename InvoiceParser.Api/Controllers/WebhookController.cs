@@ -22,13 +22,13 @@ public sealed class WebhookController : ControllerBase
         if (string.IsNullOrWhiteSpace(requestId))
             return BadRequest(new { error = "Missing requestId" });
 
-        var expectedSecret = Environment.GetEnvironmentVariable("N8N_CALLBACK_SECRET");
-        if (!string.IsNullOrWhiteSpace(expectedSecret))
-        {
-            var provided = Request.Headers.TryGetValue("X-Webhook-Secret", out var hs) ? hs.ToString() : body.WebhookSecret;
-            if (string.IsNullOrWhiteSpace(provided) || provided != expectedSecret)
-                return Unauthorized(new { error = "Unauthorized" });
-        }
+        //var expectedSecret = Environment.GetEnvironmentVariable("N8N_CALLBACK_SECRET");
+        //if (!string.IsNullOrWhiteSpace(expectedSecret))
+        //{
+        //    var provided = Request.Headers.TryGetValue("X-Webhook-Secret", out var hs) ? hs.ToString() : body.WebhookSecret;
+        //    if (string.IsNullOrWhiteSpace(provided) || provided != expectedSecret)
+        //        return Unauthorized(new { error = "Unauthorized" });
+        //}
 
         if (!string.IsNullOrWhiteSpace(body.Error))
         {
